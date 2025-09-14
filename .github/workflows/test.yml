@@ -1,0 +1,63 @@
+name: Run Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          echo "CHANGED=$(git diff --name-only origin/main...HEAD)" >> $GITHUB_ENV
+
+      - name: Run selective tests
+        run: |
+          echo "Changed files: $CHANGED"
+          
+          if echo "$CHANGED" | grep -q "book.py"; then
+            echo "Running book tests..."
+            pytest tests/test_books.py
+          fi
+
+          if echo "$CHANGED" | grep -q "member.py"; then
+            echo "Running member tests..."
+            pytest tests/test_members.py
+          fi
+
+          if echo "$CHANGED" | grep -q "issue_return.py"; then
+            echo "Running issue tests..."
+            pytest tests/test_issues.py
+          fi
+
+          if echo "$CHANGED" | grep -q "auth_system.py"; then
+            echo "Running login tests..."
+            pytest tests/test_login.py
+          fi
+
+          if echo "$CHANGED" | grep -q "search.py"; then
+            echo "Running search tests..."
+            pytest tests/test_search.py
+          fi
+
+          if echo "$CHANGED" | grep -q "data_store.py"; then
+            echo "data_store.py changed → Running all tests..."
+            pytest tests/
+          fi
