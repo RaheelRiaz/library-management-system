@@ -1,0 +1,19 @@
+trigger:
+  - main   # or the branch you use
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+# Just a dummy step so pipeline doesn't fail
+- script: echo "Starting EC2 test deployment..."
+  displayName: "Pipeline started"
+
+# Run command directly on EC2 via SSH
+- task: SSH@0
+  inputs:
+    sshEndpoint: 'LibraryAppEC2Connection'   # <-- name of your SSH service connection
+    runOptions: 'commands'
+    commands: |
+      echo "Hello from Azure DevOps at $(date)" > /home/ubuntu/testfile.txt
+      ls -l /home/ubuntu/
