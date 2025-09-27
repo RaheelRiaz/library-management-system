@@ -4,26 +4,49 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-# Step 1: Create an artifact file
-- script: |
-    echo "This is a test artifact created at $(date)" > artifact.txt
-  displayName: "Create artifact file"
+jobs:
+# ============================
+# Job 1: Build & Publish
+# ============================
+- job: Build
+  displayName: "Build and Publish Artifact"
+  steps:
+    # Step 1: Create an artifact file
+    - script: |
+        echo "This is a test artifact created at $(date)" > artifact.txt
+      displayName: "Create artifact file"
 
-# Step 2: Install SSH client (if not already present)
-- script: |
-    sudo apt-get update
-    sudo apt-get install -y openssh-client
-  displayName: "Install SSH client"
+    # Step 2: Publish the artifact to ADO (visible in pipeline UI)
+    - publish: artifact.txt
+      artifact: drop
+      displayName: "Publish artifact to ADO"
 
-# Step 3: Download private key from secure files
-- task: DownloadSecureFile@1
-  name: sshKey
-  inputs:
-    secureFile: 'library-app-key.pem'   # Name of your uploaded PEM key in ADO Secure Files
+# ============================
+# Job 2: Deploy to EC2
+# ============================
+- job: Deploy
+  displayName: "Deploy Artifact to EC2"
+  dependsOn: Build    # ensures this job runs only if Build succeeds
+  steps:
+    # Step 1: Download the published artifact
+    - download: current
+      artifact: drop
+      displayName: "Download artifact from ADO"
 
-# Step 4: Use scp to copy the file to EC2
-- script: |
-    chmod 600 $(sshKey.secureFilePath)
-    scp -o StrictHostKeyChecking=no -i $(sshKey.secureFilePath) artifact.txt ubuntu@3.89.162.226:/home/ubuntu/
-  displayName: "Copy artifact.txt to EC2"
+    # Step 2: Install SSH client
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y openssh-client
+      displayName: "Install SSH client"
+
+    # Step 3: Download private key from secure files
+    - task: DownloadSecureFile@1
+      name: sshKey
+      inputs:
+        secureFile: 'library-app-key.pem'   # your PEM file in ADO Secure Files
+
+    # Step 4: Copy artifact to EC2
+    - script: |
+        chmod 600 $(sshKey.secureFilePath)
+        scp -o StrictHostKeyChecking=no -i $(sshKey.secureFilePath) drop/artifact.txt ubuntu@3.89.162.226:/home/ubuntu/
+      displayName: "Copy artifact.txt to EC2"
