@@ -16,10 +16,13 @@ jobs:
         echo "This is a test artifact created at $(date)" > artifact.txt
       displayName: "Create artifact file"
 
-    # Step 2: Publish the artifact to ADO (visible in pipeline UI)
-    - publish: artifact.txt
-      artifact: drop
+    # Step 2: Publish artifact to ADO (faster for small files)
+    - task: PublishBuildArtifacts@1
       displayName: "Publish artifact to ADO"
+      inputs:
+        PathtoPublish: 'artifact.txt'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
 
 # ============================
 # Job 2: Deploy to EC2
