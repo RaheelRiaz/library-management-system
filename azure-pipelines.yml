@@ -1,19 +1,29 @@
 trigger:
-  - main   # or the branch you use
+  - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-# Just a dummy step so pipeline doesn't fail
-- script: echo "Starting EC2 test deployment..."
-  displayName: "Pipeline started"
+# Step 1: Create an artifact file
+- script: |
+    echo "This is a test artifact created at $(date)" > artifact.txt
+  displayName: "Create artifact file"
 
-# Run command directly on EC2 via SSH
-- task: SSH@0
+# Step 2: Install SSH client (if not already present)
+- script: |
+    sudo apt-get update
+    sudo apt-get install -y openssh-client
+  displayName: "Install SSH client"
+
+# Step 3: Download private key from secure files
+- task: DownloadSecureFile@1
+  name: sshKey
   inputs:
-    sshEndpoint: 'LibraryAppEC2Connection'   # <-- name of your SSH service connection
-    runOptions: 'commands'
-    commands: |
-      echo "Hello from Azure DevOps at $(date)" > /home/ubuntu/testfile.txt
-      ls -l /home/ubuntu/
+    secureFile: 'library-app-key.pem'   # Name of your uploaded PEM key in ADO Secure Files
+
+# Step 4: Use scp to copy the file to EC2
+- script: |
+    chmod 600 $(sshKey.secureFilePath)
+    scp -o StrictHostKeyChecking=no -i $(sshKey.secureFilePath) artifact.txt ubuntu@3.89.162.226:/home/ubuntu/
+  displayName: "Copy artifact.txt to EC2"
