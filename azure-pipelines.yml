@@ -51,5 +51,5 @@ jobs:
     # Step 4: Copy artifact to EC2
     - script: |
         chmod 600 $(sshKey.secureFilePath)
-        scp -o StrictHostKeyChecking=no -i $(sshKey.secureFilePath) drop/artifact.txt ubuntu@3.89.162.226:/home/ubuntu/
+        scp -o StrictHostKeyChecking=no -i $(sshKey.secureFilePath) $(Pipeline.Workspace)/drop/artifact.txt ubuntu@3.89.162.226:/home/ubuntu/
       displayName: "Copy artifact.txt to EC2"
